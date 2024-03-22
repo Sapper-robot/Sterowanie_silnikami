@@ -61,10 +61,104 @@ static void MX_TIM6_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+int wypelnienie_uart=49;
+int wypelnienie_uart2=49;
 int tim4_period = 99;
 
 int tim6_period = 99;
+///////////////////////////////// receve
+#define LINE_MAX_LENGTH	80
+
+static char line_buffer[LINE_MAX_LENGTH + 1];
+static uint32_t line_length;
+
+void line_append(uint8_t value)
+{
+	if (value == '\r' || value == '\n') {
+		// odebraliśmy znak końca linii
+		if (line_length > 0) {
+			// jeśli bufor nie jest pusty to dodajemy 0 na końcu linii
+			line_buffer[line_length] = '\0';
+			// przetwarzamy dane
+			printf("Otrzymano: %s\n", line_buffer);
+
+			//kody: prawy/lewy/oba | przód/tyl | wypelnienie
+			//          P/L/O      |    P/T    |    0-99
+			// stop = SP
+
+			if (strcmp(line_buffer, "wlacz") == 0) {
+				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+			}
+			else if (strcmp(line_buffer, "wylacz") == 0) {
+				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+			}
+
+			else if (line_buffer[0]=='O'&&line_buffer[1]=='P'){ //OP
+				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
+				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
+				HAL_TIM_Base_Start_IT(&htim4);
+				HAL_TIM_Base_Start_IT(&htim6);
+			}
+			else if (line_buffer[0]=='O'&&line_buffer[1]=='T'){
+				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 0);  //direction1 1 = przod
+				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 1); //direction2 0 = przod
+				HAL_TIM_Base_Start_IT(&htim4);
+				HAL_TIM_Base_Start_IT(&htim6);
+			}
+			else if (line_buffer[0]=='S'&&line_buffer[1]=='P'){
+				HAL_TIM_Base_Stop_IT(&htim4);
+				HAL_TIM_Base_Stop_IT(&htim6);
+			}
+			else if (line_buffer[0]=='P'&&line_buffer[1]=='P'){
+				HAL_TIM_Base_Start_IT(&htim4);
+				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 1); //direction2 0 = przod
+				HAL_TIM_Base_Start_IT(&htim6);
+				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 0 = tyl
+			}
+			else if (line_buffer[0]=='L'&&line_buffer[1]=='P'){
+				HAL_TIM_Base_Start_IT(&htim4);
+				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
+				HAL_TIM_Base_Start_IT(&htim6);
+				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 0);  //direction1 0 = tyl
+
+
+			} //*/
+			else {
+				printf("Nieznane polecenie: %s\n", line_buffer);
+			}
+
+			wypelnienie_uart = (int)(line_buffer[2] - '0')*10 + (int)(line_buffer[3] - '0');
+
+
+			// zaczynamy zbieranie danych od nowa
+			line_length = 0;
+
+		}
+	}
+	else {
+		if (line_length >= LINE_MAX_LENGTH) {
+			// za dużo danych, usuwamy wszystko co odebraliśmy dotychczas
+			line_length = 0;
+		}
+		// dopisujemy wartość do bufora
+		line_buffer[line_length++] = value;
+	}
+}
+
+
+/////////////////////////////////////////////////  send
+int __io_putchar(int ch)
+{
+	if (ch == '\n'){
+		uint8_t ch2 = '\r';
+		HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
+	}
+
+	  HAL_UART_Transmit(&huart2, (uint8_t*)&ch, 1, HAL_MAX_DELAY);
+	  return 1;
+}
+/////////////////////////
+
 /* USER CODE END 0 */
 
 /**
@@ -109,13 +203,21 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  printf("Hello World!\n");
   while (1)
   {
 
+	  uint8_t test;
+	  uint8_t value;
+	  if (HAL_UART_Receive(&huart2, &value, 1, 0) == HAL_OK) {
+		  line_append(value);
+		  test = value;
+	  }
 
-	  HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
-	  HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
+	  //HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
+	  //HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
 
+	  /*
 	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==0)
 	  {
 		  HAL_TIM_Base_Start_IT(&htim4);
@@ -124,6 +226,7 @@ int main(void)
 		  HAL_TIM_Base_Stop_IT(&htim4);//
 		  HAL_TIM_Base_Stop_IT(&htim6);
 	  }
+	  */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -199,7 +302,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 299;
+  htim4.Init.Prescaler = 199;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 99;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -220,28 +323,7 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM4_Init 2 */
-  ////////////////////////////////tim4_period
-  htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 299;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = tim4_period;
-  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
+
   /* USER CODE END TIM4_Init 2 */
 
 }
@@ -264,7 +346,7 @@ static void MX_TIM6_Init(void)
 
   /* USER CODE END TIM6_Init 1 */
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 299;
+  htim6.Init.Prescaler = 199;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 99;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -342,11 +424,11 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
+  /*Configure GPIO pin : User_button_Pin */
+  GPIO_InitStruct.Pin = User_button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(User_button_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD2_Pin DIR_minus_Pin PUL_minus_Pin PUL2_minus_Pin */
   GPIO_InitStruct.Pin = LD2_Pin|DIR_minus_Pin|PUL_minus_Pin|PUL2_minus_Pin;
@@ -354,6 +436,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Button_L_Pin */
+  GPIO_InitStruct.Pin = Button_L_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Button_L_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : DIR2_minus_Pin */
   GPIO_InitStruct.Pin = DIR2_minus_Pin;
@@ -369,9 +457,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if (GPIO_Pin == Button_L_Pin){
-		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-	}
+	//if (GPIO_Pin == Button_L_Pin){
+	//	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	//}
 }
 
 

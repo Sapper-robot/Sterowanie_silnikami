@@ -120,7 +120,12 @@ void line_append(uint8_t value)
 				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
 				HAL_TIM_Base_Start_IT(&htim6);
 				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 0);  //direction1 0 = tyl
-
+			}
+			else if (line_buffer[0]=='D'&&line_buffer[1]=='1'&&line_buffer[2]=='T'){ //Led 1 On
+				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
+			}
+			else if (line_buffer[0]=='D'&&line_buffer[1]=='1'&&line_buffer[2]=='F'){ //Led 1 On
+				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
 
 			} //*/
 			else {
@@ -225,7 +230,7 @@ int main(void)
 		  }
 		  a=0;
 	  }
-	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==1){
+	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==1){  //detecting edge
 		  a=1;
 	  }
 

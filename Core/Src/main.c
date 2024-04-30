@@ -167,6 +167,7 @@ int __io_putchar(int ch)
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -203,6 +204,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  int a=0;
+  int b=0;
   printf("Hello World!\n");
   while (1)
   {
@@ -212,7 +215,20 @@ int main(void)
 	  if (HAL_UART_Receive(&huart2, &value, 1, 0) == HAL_OK) {
 		  line_append(value);
 		  test = value;
+		  //printf("otrzymano: ");
+		  printf(value);
 	  }
+	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==0){
+		  if (a==1){
+			  printf("b1\n");
+			  b++;
+		  }
+		  a=0;
+	  }
+	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==1){
+		  a=1;
+	  }
+
 
 	  //HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
 	  //HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod

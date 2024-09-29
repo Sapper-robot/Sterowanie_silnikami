@@ -94,46 +94,50 @@ void line_append(uint8_t value)
 			}
 
 			else if (line_buffer[0]=='O'&&line_buffer[1]=='P'){ //OP
+				printf("jade");
 				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
 				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
 				HAL_TIM_Base_Start_IT(&htim4);
 				HAL_TIM_Base_Start_IT(&htim6);
+				wypelnienie_uart = ( ( (int)line_buffer[2]-48 )*10 ) + ( (int)line_buffer[3]-48 );
 			}
 			else if (line_buffer[0]=='O'&&line_buffer[1]=='T'){
 				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 0);  //direction1 1 = przod
 				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 1); //direction2 0 = przod
 				HAL_TIM_Base_Start_IT(&htim4);
 				HAL_TIM_Base_Start_IT(&htim6);
+				wypelnienie_uart = ( ( (int)line_buffer[2]-48 )*10 ) + ( (int)line_buffer[3]-48 );
 			}
-			else if (line_buffer[0]=='S'&&line_buffer[1]=='P'){
+			else if (line_buffer[0]=='S'&&line_buffer[1]=='T'){
 				HAL_TIM_Base_Stop_IT(&htim4);
 				HAL_TIM_Base_Stop_IT(&htim6);
-			}
+				wypelnienie_uart = ( ( (int)line_buffer[2]-48 )*10 ) + ( (int)line_buffer[3]-48 );
+			}/*
 			else if (line_buffer[0]=='P'&&line_buffer[1]=='P'){
 				HAL_TIM_Base_Start_IT(&htim4);
 				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 1); //direction2 0 = przod
 				HAL_TIM_Base_Start_IT(&htim6);
 				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 0 = tyl
+				wypelnienie_uart = ( ( (int)line_buffer[2]-48 )*10 ) + ( (int)line_buffer[3]-48 );
 			}
 			else if (line_buffer[0]=='L'&&line_buffer[1]=='P'){
 				HAL_TIM_Base_Start_IT(&htim4);
 				HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
 				HAL_TIM_Base_Start_IT(&htim6);
 				HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 0);  //direction1 0 = tyl
-			}
+				wypelnienie_uart = ( ( (int)line_buffer[2]-48 )*10 ) + ( (int)line_buffer[3]-48 );
+			}*/
 			else if (line_buffer[0]=='D'&&line_buffer[1]=='1'&&line_buffer[2]=='T'){ //Led 1 On
 				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
 			}
 			else if (line_buffer[0]=='D'&&line_buffer[1]=='1'&&line_buffer[2]=='F'){ //Led 1 On
 				HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
-
-			} //*/
+			}
 			else {
 				printf("Nieznane polecenie: %s\n", line_buffer);
 			}
 
-			wypelnienie_uart = (int)(line_buffer[2] - '0')*10 + (int)(line_buffer[3] - '0');
-
+			//wypelnienie_uart = (int)(line_buffer[2] - '0')*10 + (int)(line_buffer[3] - '0');
 
 			// zaczynamy zbieranie danych od nowa
 			line_length = 0;
@@ -221,18 +225,32 @@ int main(void)
 		  line_append(value);
 		  test = value;
 		  //printf("otrzymano: ");
-		  printf(value);
+		  //printf(value);
 	  }
+
+	  ////////////////////////////////////////test////////////////////////////////////////////////////test////
 	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==0){
 		  if (a==1){
 			  printf("b1\n");
-			  b++;
 		  }
 		  a=0;
 	  }
 	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==1){  //detecting edge
 		  a=1;
 	  }
+
+	  if (HAL_GPIO_ReadPin(User_button_GPIO_Port, User_button_Pin)==0){
+		  HAL_TIM_Base_Start_IT(&htim4);
+		  HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
+		  HAL_TIM_Base_Start_IT(&htim6);
+		  HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
+	  }else {
+		  HAL_TIM_Base_Stop_IT(&htim4);
+		  HAL_GPIO_WritePin(DIR2_minus_GPIO_Port, DIR2_minus_Pin, 0); //direction2 0 = przod
+		  HAL_TIM_Base_Stop_IT(&htim6);
+		  HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
+	  }
+
 
 
 	  //HAL_GPIO_WritePin(DIR_minus_GPIO_Port, DIR_minus_Pin, 1);  //direction1 1 = przod
